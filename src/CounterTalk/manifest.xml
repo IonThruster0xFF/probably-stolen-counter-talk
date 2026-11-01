@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Manifest>
+  <ID>counter_talk</ID><Name>Counter Talk / 柜台闲谈</Name><Author>IonThruster</Author>
+  <ModVersion>0.3.11</ModVersion>
+  <Description>Experimental LLM customer conversations. F6 opens chat. Ordinary customers support chat; story and wanted NPCs are excluded. Ordinary traders support verified gift/price proposals. Configure your own API key. Chat context is sent to the configured provider. Test on a separate save.</Description>
+  <GameVersions><Version>0.46D</Version></GameVersions>
+  <Prerequisites /><Assemblies><Assembly>CounterTalk.dll</Assembly></Assemblies>
+  <Capabilities><Capability>network</Capability><Capability>reflection-external</Capability></Capabilities>
+</Manifest>

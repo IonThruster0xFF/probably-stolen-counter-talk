@@ -1,0 +1,37 @@
+深空当铺世界观资料与提示词收录说明 / 0.3.9
+检索日期：2026-10-30；本地核对：正式版 Build 26284217。
+
+一、来源
+1. 官方 Steam 商店介绍（主要公开世界观来源）
+https://store.steampowered.com/app/4348910/Probably_Stolen_Cyberpunk_Shopkeeper_Sim/
+采用概念：阶层分化的空间站、租金压力、经营与灰色交易、阵营政治、鉴货与水质风险、失控AI芯片与Augs。采用自行撰写的简短概括，不复制整页。商店中的玩家背景不自动当成每位NPC知道的玩家经历。
+
+2. 非官方 GameWikiStation 阵营索引（仅辅助核对概念；其机制资料含试玩版，未照搬数值）
+https://gamewikistation.com/games/probably-stolen/systems/factions/
+采用下层、上层、治安、黑市、革命军等阵营基本定位；游客与卡特尔不混同。阵营ID及公开角色标签另以本地游戏StoreClientFactionSetup核对。没有采用攻略中的具体声望阈值或改变声望的公式。
+
+3. 非官方 Nico 深空当铺 Wiki 人物剧情导航（阅读参考；不是任务状态来源）
+https://probably-stolen.nicokobo.com/zh/collections/npc-storylines
+查阅了乔治奥、伦警官、埃莉诺、卢、塞尔皮科等人物线索及服务人物资料。仅把博士设备、乔的保险/网络、房东租赁作为条件性服务背景；不保证已经解锁或见过。
+人物的债务、疾病、家属、通缉分支、后续日期和结局未作为所有NPC的公共知识注入。该站明确指出部分保留剧情未确认接入；这些内容不作为既成世界事件。
+
+4. 本地原版代码（当前版本直接证据）
+StoreClientFactionSetup: SCAV/WORKER/LOWER_LEVEL_CITIZEN/SECURITY/UPPER_LEVEL_CITIZEN/TOURIST/REV/BLACK_MARKET公开角色标签及对应阵营。
+StoreClientList、StoreClientListWater:拾荒客等来客与交易类型。标签通过白名单传递，不把通缉/隐藏剧情标签批量交给模型。
+LocGenderHelper:沿用0.3.8的原版性别及说话风格解析。
+
+二、实际如何注入
+src/CounterTalk/WorldLore.cs 的 Text 在编译时拼接到 Prompt.Text，每次请求均包含。
+WorldLore.ForClient 根据当前顾客原版阵营和公开角色标签生成 world_context，每次Snapshot更新。
+完整拼接提示词见 system-prompt-0.3.9.txt；不含API-key。
+
+三、创作规则与事实的区别
+角色可表达偏好、观点、幽默、戒备与讨价还价；这是模组的写作要求，不是攻略提供的固定人格。
+拾荒客关心物品能否再利用是角色写作方向，不代表每位拾荒客经历了同一件事。
+阵营不等于出生地，WORKER不等于矿工，口渴不等于来自冰冻小行星。未知阵营不套用其他阵营。
+当前物品、身份、交易与原版已说对白优先于通用背景。普通NPC不继承剧情人物的经历。
+当前未接入任务阶段/新闻阅读器；不会根据攻略日历自行宣布事件已经发生，也不会修改剧情NPC开放范围。
+
+四、验证
+152项断言通过：32项策略、120项模拟桥接。新增公开身份白名单、角色刷新、游客隔离和未知阵营回退验证。
+编译使用真实游戏程序集；自然对话质量与所有角色组合仍需实机复测，不能把通过断言等同于模型输出保证。

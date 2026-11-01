@@ -1,0 +1,11 @@
+.tools/
+.research/
+**/bin/
+**/obj/
+dist/
+*.user
+*.log
+secrets*
+*.vdf
+counter_talk.json
+publish-local/

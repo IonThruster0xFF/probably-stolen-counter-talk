@@ -1,0 +1,34 @@
+Publication preparation — Counter Talk 0.3.11
+
+GitHub publication is authorized; Steam Workshop submission must wait for the user's review of the final description.
+GitHub repository: https://github.com/IonThruster0xFF/probably-stolen-counter-talk
+No Workshop item ID has been created; final description review is still pending.
+MIT license approved and applied. GitHub CLI authenticated by the user.
+
+Build and test:
+  .\build.ps1
+Offline native scanner (does not approve the mod or alter trust files):
+  dotnet run --project tools/ScanCheck/ScanCheck.csproj -c Release -- "GAME_DIR\Probably Stolen_Data\Managed" "dist\CounterTalk\CounterTalk.dll"
+
+Once the actual repository has been created and its URL verified:
+  .\tools\PrepareRelease.ps1 -RepositoryUrl "https://github.com/ACTUAL_OWNER/ACTUAL_REPOSITORY"
+This creates a local ignored VDF and final description under publish-local.
+The VDF starts hidden (visibility=2); change only according to the reviewed publication choice.
+The uploader is downloaded from Valve to .tools/steamcmd/steamcmd.exe (ignored, never bundled into the mod).
+
+Only after the final description is approved:
+  .\.tools\steamcmd\steamcmd.exe +login STEAM_ACCOUNT +workshop_build_item "ABSOLUTE_PATH\publish-local\counter-talk.vdf" +quit
+The human user handles passwords/Steam Guard and any first-time Workshop legal agreement.
+Keep the VDF after upload; SteamCMD writes the publishedfileid into it for subsequent updates.
+Do not rerun creation with publishedfileid=0 for an existing item.
+
+Public upload content: dist/publish-0.3.11/CounterTalk, not the workspace, private test ZIP or source archive.
+Expected files: CounterTalk.dll, manifest.xml, preview.png, README.txt, LICENSE.txt once selected.
+Do not bundle game DLLs, decompiled game code, API keys, ModConfigs, ZIP files, installers, scripts or dev.txt into the Workshop content directory.
+The source repository may contain build scripts and tests; it is separate from the Workshop payload.
+
+Official references:
+https://github.com/dragonpan2/probably-stolen-modding/blob/main/ModdingGuide.zh-CN.md
+https://github.com/dragonpan2/probably-stolen-modding/blob/main/CodeOfConduct.zh-CN.md
+
+Verified 2026-11-01: built against Steam Build 26337366; 164 assertions pass; native offline scanner Refused=False, detected network/reflection-external. Not full in-game validation or independent security review.

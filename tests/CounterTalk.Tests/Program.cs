@@ -1,0 +1,38 @@
+using System;
+using CounterTalk;
+
+int count = 0;
+void Check(bool result, string label) { count++; if (!result) throw new Exception(label); }
+Check(Rules.CanOffer(20, 0, 0, 20), "A real free gift fits budget");
+Check(!Rules.CanOffer(21, 0, 0, 20), "Cannot gift beyond budget");
+Check(!Rules.CanOffer(20, 5, 10, 20), "Discounts and gifts share spent budget");
+Check(!Rules.CanOffer(20, -1, 0, 20), "Negative prices cannot mint money");
+Check(!Rules.CanOffer(20, 21, 0, 20), "Cannot exceed the current quote");
+Check(Rules.CanOffer(long.MaxValue, long.MaxValue, 0, 20), "Large values do not overflow");
+Check(!Rules.CanOffer(long.MaxValue, 0, 0, 20), "Huge price cannot wrap into allowance");
+Check(Rules.RelationshipDelta(20, 2) == 0, "Relationship upper bound");
+Check(Rules.RelationshipDelta(-20, -2) == 0, "Relationship lower bound");
+Check(Rules.RelationshipDelta(19, 200) == 1, "Model cannot choose arbitrary delta");
+Check(!Rules.CanRecommend(1, 0, 0), "One faction recommendation per day");
+Check(!Rules.CanRecommend(0, 5, 0), "Lifetime social recommendation cap");
+Check(!Rules.CanRecommend(0, 0, 20), "Social path does not build unlimited faction standing");
+Check(Rules.ValidEndpoint("https://api.deepseek.com/chat/completions"), "Official HTTPS endpoint");
+Check(!Rules.ValidEndpoint("http://example.com"), "No cleartext credential transmission");
+Check(!Rules.ValidEndpoint("https://key@example.com"), "No embedded credentials");
+Check(RequestPolicy.IsTimeout("Request timeout"), "Unity timeout is recognized");
+Check(RequestPolicy.IsTimeout("Operation timed out"), "Curl timeout is recognized");
+Check(!RequestPolicy.IsTimeout(null), "Missing transport error is safe");
+Check(RequestPolicy.Retry(503, false, 1), "Overload gets one retry");
+Check(!RequestPolicy.Retry(503, false, 2), "Retries are bounded");
+Check(RequestPolicy.Retry(200, true, 1), "HTTP headers 200 with broken body can retry");
+Check(!RequestPolicy.Retry(200, false, 1), "Successful response is not repeated");
+Check(!RequestPolicy.Retry(401, true, 1), "Authentication failure is not retried");
+Check(!RequestPolicy.Retry(402, false, 1), "Insufficient balance is not retried");
+Check(!RequestPolicy.Retry(400, false, 1), "Invalid parameters are not retried");
+Check(RequestPolicy.IsDeepSeek("https://api.deepseek.com/chat/completions"), "DeepSeek mode is selected by exact host");
+Check(!RequestPolicy.IsDeepSeek("https://api.deepseek.com.example.com/chat/completions"), "Custom providers do not receive DeepSeek parameters");
+Check(SpeechPolicy.PricedAcceptance("八十五就八十五，两瓶我认了。"), "Unapplied acceptance in screenshot detected");
+Check(SpeechPolicy.PricedAcceptance("85，成交。"), "Numeric acceptance detected");
+Check(SpeechPolicy.PricedAcceptance("85 credits, agreed."), "English acceptance detected");
+Check(!SpeechPolicy.PricedAcceptance("我预算只有108。"), "Budget statement not treated as agreement");
+Console.WriteLine($"PASS: {count} policy assertions");

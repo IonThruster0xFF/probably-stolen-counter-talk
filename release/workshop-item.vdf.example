@@ -1,0 +1,11 @@
+"workshopitem"
+{
+    "appid" "4348910"
+    "publishedfileid" "0"
+    "contentfolder" "__CONTENT_FOLDER__"
+    "previewfile" "__PREVIEW_FILE__"
+    "visibility" "2"
+    "title" "柜台闲谈 / Counter Talk — AI NPC 对话与议价"
+    "description" "__DESCRIPTION__"
+    "changenote" "Initial experimental release 0.3.11"
+}

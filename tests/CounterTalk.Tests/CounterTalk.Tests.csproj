@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup><Compile Include="../../src/CounterTalk/SpeechPolicy.cs" Link="SpeechPolicy.cs" /><Compile Include="../../src/CounterTalk/RequestPolicy.cs" Link="RequestPolicy.cs" /><Compile Include="../../src/CounterTalk/Rules.cs" Link="Rules.cs" /></ItemGroup>
+</Project>
