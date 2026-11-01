@@ -1,0 +1,4 @@
+Generated using the built-in imagegen tool with two references.
+Game portrait: local Probably Stolen game resource, SpriteDict augLowerFemaleEntries, key augLLFemale3. Extracted for this artwork only; original remains under .research, not distributed with the mod.
+Character design: user-provided DeepSeek-Chan reference. Visible credits: 上善无形, ZipzipPipe, Rafistev. Reference states CC BY-NC-SA 4.0 and "Changes were made."
+This derivative changes rendering to pixel art, expression, framing, outfit details and adds an exposed augmentation chip. This artwork and its third-party references are not covered by the repository's MIT code license.
