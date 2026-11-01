@@ -1,8 +1,8 @@
 Publication preparation — Counter Talk 0.3.11
 
-GitHub publication is authorized; Steam Workshop submission must wait for the user's review of the final description.
+GitHub publication and Steam Workshop upload are authorized. User approved the player-facing description on 2026-11-01; publish hidden and select the AI category.
 GitHub repository: https://github.com/IonThruster0xFF/probably-stolen-counter-talk
-No Workshop item ID has been created; final description review is still pending.
+No Workshop item ID yet; SteamCMD login/Steam Guard verification is pending.
 MIT license approved and applied. GitHub CLI authenticated by the user.
 
 Build and test:
@@ -16,7 +16,7 @@ This creates a local ignored VDF and final description under publish-local.
 The VDF starts hidden (visibility=2); change only according to the reviewed publication choice.
 The uploader is downloaded from Valve to .tools/steamcmd/steamcmd.exe (ignored, never bundled into the mod).
 
-Only after the final description is approved:
+Authorized upload command:
   .\.tools\steamcmd\steamcmd.exe +login STEAM_ACCOUNT +workshop_build_item "ABSOLUTE_PATH\publish-local\counter-talk.vdf" +quit
 The human user handles passwords/Steam Guard and any first-time Workshop legal agreement.
 Keep the VDF after upload; SteamCMD writes the publishedfileid into it for subsequent updates.
