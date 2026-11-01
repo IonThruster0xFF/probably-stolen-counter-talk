@@ -250,4 +250,54 @@ s.bridge.Tool(Offer(true,34,35,69));
 Check(s.a.GetNegociatedValue()==34 && s.b.GetNegociatedValue()==35, "Earlier conditions can be reapplied through existing validated native quote path");
 quotes.Clear();Check(((JArray)s.bridge.Snapshot()["previous_applied_quotes"]).Count==3, "Quote memory snapshot detached from external mutation");
 s=Setup();Check(((JArray)s.bridge.Snapshot()["previous_applied_quotes"]).Count==0, "Next customer's quote memory starts empty");
+// A negotiated group is a required subset of the native transaction, not the entire basket.
+foreach (bool selling in new[] { false, true }) {
+    s = Setup(selling);
+    if (selling) Buyer(s.bridge, 100);
+    s.a.Price = 10; s.b.Price = 10;
+    Check(s.bridge.Tool(Offer(selling,5,5,10))["error"] == null, "20-to-10 quote applies");
+    var extra = new GameItem { Id=12, Price=10, Owned=selling, parentInventory=EmporiumEntry.Instance.backInvinvElement };
+    EmporiumEntry.Instance.Items.Add(extra); s.bridge.Bundle.Validate();
+    Check(s.bridge.Bundle.Ready && s.a.GetNegociatedValue()==5 && s.b.GetNegociatedValue()==5 && extra.GetNegociatedValue()==10,
+        "Extra item retains original group prices and its own native price in both directions");
+    Check(s.a.Features.Count==1 && s.b.Features.Count==1 && extra.Features.Count==0, "Only negotiated items carry tags");
+    extra.parentInventory=EmporiumEntry.Instance.Front; s.bridge.Bundle.Validate();
+    Check(s.bridge.Bundle.Ready, "Removing extra leaves negotiated group active");
+    extra.parentInventory=EmporiumEntry.Instance.backInvinvElement;
+    s.b.parentInventory=EmporiumEntry.Instance.Front; s.bridge.Bundle.Validate();
+    Check(!s.bridge.Bundle.Ready && s.a.GetNegociatedValue()==10, "Extra item cannot replace a missing quoted member");
+    s.b.parentInventory=EmporiumEntry.Instance.backInvinvElement; s.bridge.Bundle.Validate();
+    Check(s.bridge.Bundle.Ready && s.a.GetNegociatedValue()==5, "Returning quoted member restores tags despite extra");
+    Check(!s.bridge.Bundle.Begin(new List<GameItem>{s.a,extra},selling), "Partial quoted subset cannot use discount");
+    Check(!s.bridge.Bundle.Begin(new List<GameItem>{s.a,s.b,extra,extra},selling), "Duplicate extra rejected before transfer");
+    if(selling) s.bridge.Client.Budget=15; else PlayerStore.Instance.playerCash=15;
+    Check(!s.bridge.Bundle.Begin(new List<GameItem>{s.a,s.b,extra},selling) && PlayerStore.Instance.Commits==0,
+        "Affordability includes extras before any transfer");
+    if(selling) s.bridge.Client.Budget=100; else PlayerStore.Instance.playerCash=100;
+    var completed=Trade(s.bridge,new List<GameItem>{s.a,extra,s.b},selling);
+    Check((string)completed["status"]=="completed" && (int)completed["total"]==20 && (int)completed["item_count"]==3,
+        "Combined transaction reports all three items and actual combined price");
+    Check(PlayerStore.Instance.Commits==3 && PlayerStore.Instance.playerCash==(selling?120:80), "Both directions transfer and charge all items");
+    Check(!s.bridge.Bundle.Active && s.a.Features.Count==0 && s.b.Features.Count==0, "Combined completion clears negotiated tags");
+    Check(s.bridge.ConcessionRemaining==(selling?20:10), "Only quoted concession consumes allowance");
+}
+s=Setup();
+var preexisting=new GameItem {Id=12,Price=6,parentInventory=EmporiumEntry.Instance.backInvinvElement};
+EmporiumEntry.Instance.Items.Add(preexisting);
+Check(s.bridge.Tool(Offer())["error"]==null && s.bridge.Bundle.Ready, "Quote may be applied with unrelated items already staged");
+Check(s.bridge.Bundle.Begin(new List<GameItem>{preexisting},false) && !s.bridge.Bundle.Executing, "Independent extra-only native trade allowed");
+PlayerStore.Instance.BuyItem(preexisting); s.bridge.Bundle.Validate();
+Check(s.bridge.Bundle.Ready && s.a.GetNegociatedValue()==3 && PlayerStore.Instance.playerCash==94, "Extra-only trade preserves quote");
+s=Setup(true); Buyer(s.bridge,100); s.bridge.Tool(Offer(true));
+var refusedExtra=new GameItem {Id=12,Price=6,Owned=true,Refused=true,parentInventory=EmporiumEntry.Instance.backInvinvElement};
+EmporiumEntry.Instance.Items.Add(refusedExtra);
+Check(!s.bridge.Bundle.Begin(new List<GameItem>{s.a,s.b,refusedExtra},true) && PlayerStore.Instance.Commits==0,
+    "Refused extra blocks whole batch before any transfer");
+s=Setup(); s.bridge.Tool(Offer());
+var missedExtra=new GameItem {Id=12,Price=6,parentInventory=EmporiumEntry.Instance.backInvinvElement};
+EmporiumEntry.Instance.Items.Add(missedExtra);
+Check(s.bridge.Bundle.Begin(new List<GameItem>{s.a,s.b,missedExtra},false), "Expanded transaction begins");
+PlayerStore.Instance.BuyItem(s.a); PlayerStore.Instance.BuyItem(s.b);
+Check(s.bridge.Bundle.Finish(false)["error"]!=null && s.bridge.Faulted,
+    "Native omission of an extra item must not report whole transaction completed");
 Console.WriteLine($"PASS: {assertions} bridge/bundle behavior assertions (fake game, actual bridge and bundle code)");

@@ -17,6 +17,7 @@ namespace CounterTalk
         }
         private readonly GameBridge bridge;
         private List<Line> lines = new List<Line>();
+        private List<Line> executionLines = new List<Line>();
         private readonly HashSet<GameItem> executed = new HashSet<GameItem>();
         private bool readingBase, executing;
         private bool playerSelling;
@@ -40,7 +41,7 @@ namespace CounterTalk
         public long Price(GameItem item, long original)
         {
             if (readingBase || !Active) return original;
-            var line = lines.Find(l => ReferenceEquals(l.Item, item));
+            var line = (executing ? executionLines : lines).Find(l => ReferenceEquals(l.Item, item));
             if (line == null) return original;
             if (executing) return line.Price;
             if (original != line.BasePrice || !Ready) return original;
@@ -48,7 +49,6 @@ namespace CounterTalk
         }
         // Moving a member away suspends every price tag, but does not forget the agreed item identities.
         public bool Ready => Active && bridge.Valid && ClientEligibility.CanTrade(bridge.Client) && !bridge.DeparturePending &&
-            EmporiumEntry.Instance.GetBackInvItems().Count(i => GeneralHelper.IsItemOwned(i) == playerSelling) == lines.Count &&
             lines.All(l => Intact(l, BasePrice(l.Item)));
         private bool Intact(Line line, long original) =>
             line.Item.unitCount == 1 && line.Item.MayRemove() && !line.Item.FindAllChildItems().Any() &&
@@ -82,8 +82,6 @@ namespace CounterTalk
             if (concession > bridge.ConcessionRemaining) return GameBridge.Error("customer_concession_limit");
             if (selling && bridge.Client.useClientBudget && total > bridge.Client.GetBudget()) return GameBridge.Error("customer_budget_insufficient");
             var back = EmporiumEntry.Instance.backInvinvElement;
-            if (EmporiumEntry.Instance.GetBackInvItems().Any(i => GeneralHelper.IsItemOwned(i) == selling && !next.Any(l => ReferenceEquals(l.Item, i))))
-                return GameBridge.Error("other_items_in_native_trade_area_clear_them_or_include_in_bundle");
             Cancel();
             // Slot placement only. No BuyItem/SellItem, ownership changes, or warehouse fallback.
             var moved = new List<Line>();
@@ -128,31 +126,41 @@ namespace CounterTalk
         public bool Begin(List<GameItem> items, bool selling)
         {
             if (!Active) return true;
+            // Independent native trades must not consume or invalidate an unrelated quote.
+            if (!executing && !items.Any(i => lines.Any(l => ReferenceEquals(l.Item, i))))
+                return bridge.Valid && !bridge.DeparturePending;
             // An incomplete set trades normally at native prices. A completed partial sale invalidates the old quote.
             if (!executing && !Ready) return bridge.Valid && !bridge.DeparturePending;
             if (executing || !bridge.Valid || bridge.DeparturePending || selling != playerSelling ||
-                !ClientEligibility.CanTrade(bridge.Client) || items.Count != lines.Count || items.Distinct().Count() != lines.Count ||
+                !ClientEligibility.CanTrade(bridge.Client) || items.Distinct().Count() != items.Count ||
                 lines.Any(l => !items.Contains(l.Item) || !Intact(l, BasePrice(l.Item)))) return false;
-            long total = lines.Sum(l => l.Price);
+            if (items.Any(i => GeneralHelper.IsItemOwned(i) != selling || !EmporiumEntry.Instance.GetBackInvItems().Contains(i))) return false;
+            var batch = items.Select(i => lines.Find(l => ReferenceEquals(l.Item, i)) ??
+                new Line { Item = i, BasePrice = BasePrice(i), Price = BasePrice(i) }).ToList();
+            if (batch.Any(l => l.Price < 0)) return false;
+            long total = batch.Sum(l => l.Price);
             if ((!selling && PlayerStore.Instance.playerCash < total) ||
                 (selling && bridge.Client.useClientBudget && bridge.Client.GetBudget() < total) ||
-                (selling && lines.Any(l => !bridge.Client.IsClientBuyingThisItem(l.Item)))) return false;
+                (selling && items.Any(i => !bridge.Client.IsClientBuyingThisItem(i)))) return false;
             long concession = lines.Sum(l => selling ? Math.Max(0, l.Price - l.BasePrice) : l.BasePrice - l.Price);
             if (concession > bridge.ConcessionRemaining) return false;
             bridge.SpendConcession((int)concession);
+            executionLines = batch;
             executed.Clear(); executing = true;
             return true;
         }
-        public bool AllowTransfer(GameItem item, bool selling) => !Active || (!executing && !Ready) ||
-            (executing && selling == playerSelling && lines.Any(l => ReferenceEquals(l.Item, item)) && executed.Add(item));
+        public bool AllowTransfer(GameItem item, bool selling) => !Active ||
+            (!executing && (!Ready || !lines.Any(l => ReferenceEquals(l.Item, item)))) ||
+            (executing && selling == playerSelling && executionLines.Any(l => ReferenceEquals(l.Item, item)) && executed.Add(item));
 
         public JObject Finish(bool failed)
         {
             if (!executing) return null;
-            bool complete = !failed && lines.All(l => executed.Contains(l.Item) && GeneralHelper.IsItemOwned(l.Item) != playerSelling);
-            var result = complete ? bridge.RecordNativeTrade(Id, lines.Select(l => l.Item).ToList(), playerSelling, lines.Sum(l => l.Price)) :
+            bool complete = !failed && executionLines.All(l => executed.Contains(l.Item) && GeneralHelper.IsItemOwned(l.Item) != playerSelling);
+            var result = complete ? bridge.RecordNativeTrade(Id, executionLines.Select(l => l.Item).ToList(), playerSelling, executionLines.Sum(l => l.Price)) :
                 GameBridge.Error("native_bundle_incomplete_inspect_assets_tools_locked_no_retry");
             executing = false; Cancel();
+            executionLines.Clear();
             if (!complete) bridge.LockTools();
             return result;
         }
